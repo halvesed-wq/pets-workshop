@@ -1,0 +1,83 @@
+---
+import Layout from '../layouts/Layout.astro';
+import DogList from '../components/DogList.astro';
+
+const API_SERVER_URL = process.env.API_SERVER_URL || 'http://localhost:5100';
+const PAGE_SIZE = 6;
+
+let dogs = [];
+let page = 1;
+let totalPages = 1;
+let error: string | null = null;
+
+const currentPage = Math.max(1, Number(Astro.url.searchParams.get('page')) || 1);
+
+try {
+  const response = await fetch(`${API_SERVER_URL}/api/dogs?page=${currentPage}&per_page=${PAGE_SIZE}`);
+  if (response.ok) {
+    const data = await response.json();
+    dogs = data.dogs;
+    page = data.page;
+    totalPages = data.total_pages;
+  } else {
+    error = `Failed to fetch data: ${response.status} ${response.statusText}`;
+  }
+} catch (err) {
+  error = `Error: ${err instanceof Error ? err.message : String(err)}`;
+}
+---
+
+<Layout title="Tailspin Shelter - Find Your Forever Friend">
+  <div class="py-8">
+    <div class="max-w-3xl mb-10">
+      <h1 class="text-4xl font-bold mb-4 text-slate-100">Welcome to Tailspin Shelter</h1>
+      <p class="text-xl text-slate-300">Find your perfect companion from our wonderful selection of dogs looking for their forever homes.</p>
+    </div>
+
+    {error ? (
+      <div class="text-center py-12 bg-slate-800/50 backdrop-blur-sm rounded-xl border border-slate-700" data-testid="error-message">
+        <p class="text-red-400">{error}</p>
+      </div>
+    ) : (
+      <>
+        <DogList dogs={dogs} />
+
+        {totalPages > 1 && (
+          <nav class="flex justify-center items-center gap-2 mt-10" data-testid="pagination">
+            {page > 1 ? (
+              <a
+                href={`/?page=${page - 1}`}
+                class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:border-blue-500/50 hover:text-blue-400 transition-colors"
+                data-testid="pagination-prev"
+              >
+                ← Previous
+              </a>
+            ) : (
+              <span class="px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-600 cursor-not-allowed">
+                ← Previous
+              </span>
+            )}
+
+            <span class="px-4 py-2 text-slate-300" data-testid="pagination-info">
+              Page {page} of {totalPages}
+            </span>
+
+            {page < totalPages ? (
+              <a
+                href={`/?page=${page + 1}`}
+                class="px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 hover:border-blue-500/50 hover:text-blue-400 transition-colors"
+                data-testid="pagination-next"
+              >
+                Next →
+              </a>
+            ) : (
+              <span class="px-4 py-2 rounded-lg bg-slate-800/50 border border-slate-700/50 text-slate-600 cursor-not-allowed">
+                Next →
+              </span>
+            )}
+          </nav>
+        )}
+      </>
+    )}
+  </div>
+</Layout>
